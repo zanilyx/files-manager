@@ -44,8 +44,6 @@ class FilesManagerApp:
         self.status_label = tk.Label(self.root, text="", font=("Segoe UI", 9, "italic"))
         self.status_label.pack()
 
-
-
         self.switch_mode()
 
     def switch_mode(self, event=None):
@@ -173,8 +171,6 @@ class FilesManagerApp:
 
         self.set_status("Starting merge...")
         start_time = time.time()
-        self.progress["value"] = i + 1
-
 
         pdfs = []
         try:
@@ -182,7 +178,6 @@ class FilesManagerApp:
                 self.set_status(f"Converting: {os.path.basename(file)}")
                 pdf = self.convert_to_pdf(file)
                 pdfs.append(pdf)
-                self.progress["value"] = i + 1
 
             self.set_status("Merging PDFs...")
             merged = fitz.open()
@@ -204,6 +199,10 @@ class FilesManagerApp:
         except Exception as e:
             self.set_status("Failed ❌")
             messagebox.showerror("Error", str(e))
+        finally:
+            # Clean up temporary files
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
+            self.temp_dir = tempfile.mkdtemp()
 
     #############################
     # PY TO EXE UI
@@ -225,35 +224,35 @@ class FilesManagerApp:
         self.py_path.set(path)
 
     def convert_py_to_exe(self):
-        files = filedialog.askopenfilenames(filetypes=[("Python Files", "*.py")])
-        if not files:
+        py_file = self.py_path.get()
+        if not py_file:
+            messagebox.showwarning("Select File", "Please select a Python file first.")
             return
-# jai balayya
-        for py_file in files:
-            try:
-                start_time = time.time()
-                subprocess.run(["pyinstaller", "--onefile", py_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-                base_name = os.path.splitext(os.path.basename(py_file))[0]
-                exe_name = f"{base_name}.exe"
+        try:
+            start_time = time.time()
+            subprocess.run(["pyinstaller", "--onefile", py_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-                exe_path = os.path.join("dist", exe_name)
-                final_path = os.path.join(os.path.dirname(py_file), exe_name)
+            base_name = os.path.splitext(os.path.basename(py_file))[0]
+            exe_name = f"{base_name}.exe"
 
-                if os.path.exists(exe_path):
-                    shutil.move(exe_path, final_path)
+            exe_path = os.path.join("dist", exe_name)
+            final_path = os.path.join(os.path.dirname(py_file), exe_name)
+
+            if os.path.exists(exe_path):
+                shutil.move(exe_path, final_path)
 
             # Clean up build, dist, and spec file
-                shutil.rmtree("dist", ignore_errors=True)
-                shutil.rmtree("build", ignore_errors=True)
-                spec_file = f"{base_name}.spec"
-                if os.path.exists(spec_file):
-                    os.remove(spec_file)
+            shutil.rmtree("dist", ignore_errors=True)
+            shutil.rmtree("build", ignore_errors=True)
+            spec_file = f"{base_name}.spec"
+            if os.path.exists(spec_file):
+                os.remove(spec_file)
 
-                end_time = time.time()
-                messagebox.showinfo("Success", f"Converted {os.path.basename(py_file)} to EXE in {end_time - start_time:.2f} seconds.\nSaved at:\n{final_path}")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to convert {os.path.basename(py_file)}:\n{str(e)}")
+            end_time = time.time()
+            messagebox.showinfo("Success", f"Converted {os.path.basename(py_file)} to EXE in {end_time - start_time:.2f} seconds.\nSaved at:\n{final_path}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to convert {os.path.basename(py_file)}:\n{str(e)}")
 
 
     #############################
